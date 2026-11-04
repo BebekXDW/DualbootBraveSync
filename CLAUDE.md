@@ -16,7 +16,9 @@ Keeps Brave on an Arch Linux and a Windows install of the same dual-boot PC in s
 - `install-linux.sh`: installs to `~/.local/share/cookie-sync`, adds `~/.local/bin/brave-sync`, overrides the Brave `.desktop` in `~/.local/share/applications` (Exec → launcher), and a systemd user unit `brave-profile-import.service`.
 - `install-windows.ps1`: installs to `%LOCALAPPDATA%\CookieSync`, registers the host (HKCU Chrome + Brave keys), and adds "Brave (Sync)" desktop and Start-menu shortcuts (pythonw) plus a Startup-folder import shortcut. Writes JSON without a BOM.
 
-Both write `config.json`: `{sync_dir, user_data_dir, profile, brave}`. The host still accepts the old `{sync_file}`.
+- `uninstall-linux.sh` / `uninstall-windows.ps1`: undo everything the installers add (only removes `.desktop` overrides that point at the launcher), move `backup*/` to `~/brave-sync-backup-<date>`, and leave the shared folder unless `--purge` / `-Purge`. Keep them in step with the installers.
+
+Both installers write `config.json`: `{sync_dir, user_data_dir, profile, brave}`. The host still accepts the old `{sync_file}`.
 
 ## Shared folder layout
 

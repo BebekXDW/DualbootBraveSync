@@ -78,6 +78,23 @@ Start on the system that has the profile you want to keep. Open Brave through th
 - Check the state any time: `python3 ~/.local/share/cookie-sync/profile_sync.py status` (Windows: `py %LOCALAPPDATA%\CookieSync\profile_sync.py status`). The log is `sync.log` in the same folder.
 - To undo a bad load, close Brave and copy the files from `backup/` back into your Brave profile folder.
 
+## Removing it
+
+Close Brave first, then run the uninstaller on each system:
+
+```
+./uninstall-linux.sh
+```
+```
+powershell -ExecutionPolicy Bypass -File .\uninstall-windows.ps1
+```
+
+This removes the launcher, the menu entry override (your normal Brave entry comes back) or the "Brave (Sync)" shortcuts, the login item, and the helper and its registration. Your Brave profile isn't touched: the bookmarks, tabs and settings you already have stay as they are. The profile backups are moved to `~/brave-sync-backup-<date>` (Windows: `%USERPROFILE%\brave-sync-backup-<date>`) in case you need them.
+
+The synced data in the shared folder stays by default, so the other system keeps working. To delete it too (live logins and history), uninstall on the other system first, then run the last uninstall with `--purge` (Linux) or `-Purge` (Windows).
+
+Finally, open `brave://extensions` and remove **Brave Dual-Boot Sync**. On Windows, pin the normal Brave icon again.
+
 ## License
 
 [PolyForm Noncommercial 1.0.0](LICENSE): free to use, modify and share for non-commercial purposes. Commercial use requires permission.
