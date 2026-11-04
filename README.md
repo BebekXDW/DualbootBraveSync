@@ -56,3 +56,7 @@ Start on the OS where you're currently logged in to everything. Browse for a mom
 - Some sites (Google, banks, Discord) tie a session to a device and may still ask you to sign in again.
 - If the shared drive isn't mounted, saving stops with an error in the popup instead of writing somewhere else.
 - The last ~2 seconds of changes before a sudden crash or power cut can be lost.
+
+## License
+
+[PolyForm Noncommercial 1.0.0](LICENSE): free to use, modify and share for non-commercial purposes. Commercial use requires permission.
