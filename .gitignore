@@ -1,0 +1,6 @@
+cookies.json
+cookies.json.*
+config.json
+__pycache__/
+*.pem
+*.zip

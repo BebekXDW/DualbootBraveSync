@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body { font: 13px system-ui, sans-serif; width: 280px; margin: 12px; color: #222; }
+  h1 { font-size: 15px; margin: 0 0 8px; }
+  #status { background: #f3f3f3; padding: 8px; border-radius: 6px; margin-bottom: 4px; word-break: break-word; }
+  #status.err { background: #fde8e8; color: #a00; }
+  #when { color: #777; font-size: 11px; margin-bottom: 10px; }
+  .row { display: flex; gap: 6px; }
+  button { flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 6px; background: #fff; cursor: pointer; }
+  button:hover { background: #f0f0f0; }
+  button:disabled { opacity: .5; }
+  @media (prefers-color-scheme: dark) {
+    body { background: #1e1e1e; color: #eee; }
+    #status { background: #2c2c2c; }
+    #status.err { background: #4a1f1f; color: #f99; }
+    button { background: #2c2c2c; color: #eee; border-color: #555; }
+    button:hover { background: #383838; }
+  }
+</style>
+</head>
+<body>
+  <h1>Cookie Sync</h1>
+  <div id="status">…</div>
+  <div id="when"></div>
+  <div class="row">
+    <button data-cmd="save">Save now</button>
+    <button data-cmd="load">Load now</button>
+    <button data-cmd="ping">Test</button>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

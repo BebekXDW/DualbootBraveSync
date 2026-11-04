@@ -1,0 +1,11 @@
+{
+  "manifest_version": 3,
+  "name": "Cookie Sync (dual boot)",
+  "version": "1.0.0",
+  "description": "Saves cookies to a shared file while you browse and loads them when Brave starts, so Arch and Windows share logins.",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyaOLgRGGSOH8EZr26/wbXqpaCcFSaqDvqHB5VE/ZN4xvl2EoMBSAKuYFNyYUEQwrN5K/E2ACkrxcV/rlkFwiERxLndQc5gU/yvBJHyNfqNCmiyMjMeP77vWLCDcu5871V9U66GjcMfcEu6Aau8n4ZtGtFsrCCrVsXQMQyb1WL4PAyb2J8l73igQ1o5k6r/uQ4v4B7AEGrpFp+0ZqbV5uhAOtiuz4HkdvDT7OnJdxqcGXyiKrqRsG/dukSDZOjsLAYO+ILWqrIhzrfSMyXXyojxV1+/WWc+vw+SErMEnzW2MdSc2wTE1+s3W0Duu08GyHJ2RtKp16VtTq/IWYd3ztIQIDAQAB",
+  "permissions": ["cookies", "nativeMessaging", "storage", "alarms", "tabs"],
+  "host_permissions": ["<all_urls>"],
+  "background": { "service_worker": "background.js" },
+  "action": { "default_title": "Cookie Sync", "default_popup": "popup.html" }
+}
