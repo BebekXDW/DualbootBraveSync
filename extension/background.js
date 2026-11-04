@@ -237,4 +237,22 @@ chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
     queue(jobs[msg.cmd]).then(() => reply({ done: true }));
     return true;
   }
+  if (msg.cmd === "details") {
+    details().then(reply, (e) => reply({ error: e.message }));
+    return true;
+  }
 });
+
+// Profile sync result + extensions installed on the other system but not here.
+// (Brave doesn't let one extension install others, so the popup links to them.)
+async function details() {
+  const info = await native({ cmd: "info" });
+  const snap = await native({ cmd: "extensions" });
+  const here = new Set((await chrome.management.getAll()).map((e) => e.id));
+  here.add(chrome.runtime.id);
+  return {
+    profile: info.profile || {},
+    machine: snap.machine,
+    missing: (snap.extensions || []).filter((e) => !here.has(e.id)),
+  };
+}

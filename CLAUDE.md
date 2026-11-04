@@ -1,41 +1,55 @@
-# Brave Cookie Sync
+# Brave Dual-Boot Sync
 
-Brave (Chromium MV3) extension + Python native-messaging helper that keeps cookies in sync between an Arch Linux and a Windows install on the same dual-boot PC. Brave Sync covers tabs/extensions/passwords; this project only handles cookies, which Brave Sync can't.
+Keeps Brave on an Arch Linux and a Windows install of the same dual-boot PC in sync, without Brave Sync. Two parts:
+
+1. **Extension + native host**: live cookie sync (cookies are encrypted with a per-OS key on disk, so they can only move through the `chrome.cookies` API).
+2. **Profile launcher** (`host/profile_sync.py`): copies profile files and merges settings while Brave is closed.
 
 ## Layout
 
-- `extension/` — MV3 extension, loaded unpacked in `brave://extensions`.
-  - `background.js` — service worker: all sync logic.
-  - `popup.html` / `popup.js` — status + Save now / Load now / Test buttons.
-  - `manifest.json` — has a fixed `key`, so the extension ID is always `mdbmccmhobidhmobkaiogmiembhamgdf`. Don't remove the key: both installers hard-code that ID in `allowed_origins`.
-- `host/cookie_sync_host.py` — native messaging host (host name `com.cookiesync.host`). Commands: `info`, `read` (chunked, offset/length), `save` (atomic write via `.tmp`, keeps `.bak`). Reads the sync file path from `config.json` next to itself.
-- `install-linux.sh` — copies host to `~/.local/share/cookie-sync`, writes manifest to `~/.config/BraveSoftware/Brave-Browser/NativeMessagingHosts/` (override with `MANIFEST_DIR`).
-- `install-windows.ps1` — copies host to `%LOCALAPPDATA%\CookieSync`, writes a `.bat` launcher + manifest, registers under HKCU Chrome and Brave `NativeMessagingHosts` keys.
+- `extension/`: MV3 extension, loaded unpacked.
+  - `background.js`: cookie sync logic, plus a `details` message for the popup (profile status from the host + extensions missing vs. the snapshot, via `chrome.management`).
+  - `popup.html` / `popup.js`: cookie status and buttons, profile sync status, missing-extension store links.
+  - `manifest.json`: fixed `key`, so the extension ID is always `mdbmccmhobidhmobkaiogmiembhamgdf`. Don't remove it: both installers hard-code that ID.
+- `host/cookie_sync_host.py`: native messaging host `com.cookiesync.host`. Commands: `info` (also returns `profile` = launcher's `state.json`), `read` (chunked), `save` (atomic, keeps `.bak`), `extensions` (snapshot's `extensions.json`).
+- `host/profile_sync.py`: `launch [brave args] | import | export | status`, `--force` for import/export. Stdlib only, runs on both OSes.
+- `install-linux.sh`: installs to `~/.local/share/cookie-sync`, adds `~/.local/bin/brave-sync`, overrides the Brave `.desktop` in `~/.local/share/applications` (Exec → launcher), and a systemd user unit `brave-profile-import.service`.
+- `install-windows.ps1`: installs to `%LOCALAPPDATA%\CookieSync`, registers the host (HKCU Chrome + Brave keys), and adds "Brave (Sync)" desktop and Start-menu shortcuts (pythonw) plus a Startup-folder import shortcut. Writes JSON without a BOM.
 
-## How sync works
+Both write `config.json`: `{sync_dir, user_data_dir, profile, brave}`. The host still accepts the old `{sync_file}`.
 
-- The shared file (`cookies.json` on an NTFS partition both OSes mount) holds `{version, savedAt, machine, cookies[]}`.
-- `chrome.storage.local.lastSync` = `savedAt` of the last file this profile wrote or loaded.
-- On startup / install / new window: if file `savedAt > lastSync`, load it (set changed cookies, remove ones missing from the file, reload http(s) tabs).
-- On `cookies.onChanged`: debounce 2 s, then save. Also save when the last window closes, plus a 1-min alarm if dirty.
-- Before saving, if the file is newer than `lastSync`, load instead of overwriting (protects the other OS's data).
-- `quietUntil` suppresses the `onChanged` storm caused by our own import so it doesn't immediately re-save.
-- Native replies are capped at 1 MB by Chromium, hence the chunked `read`.
+## Shared folder layout
+
+```
+<sync_dir>/cookies.json          extension (live)
+<sync_dir>/profile/              launcher snapshot (profile.bak = previous, profile.new = in progress)
+    manifest.json                {version, savedAt, machine, files[]}
+    files/                       Bookmarks, History, Favicons, Top Sites, Shortcuts, Visited Links,
+                                 Custom Dictionary.txt, Sessions/, *background*
+    prefs.json                   filtered Preferences
+    local_state.json             filtered Local State
+    extensions.json              [{id, name, store, unpacked}]
+```
+
+## Rules the code relies on
+
+- **Newest wins** via `savedAt` (ms). Per-OS `state.json.synced` = `savedAt` of the last snapshot this OS wrote or loaded. `import` only if snapshot > synced. `export` refuses if snapshot > synced (other OS data never loaded here) unless `--force`.
+- **Files are only touched while Brave is closed** (`brave_running`: SingletonLock symlink + pid check on Linux, `tasklist` on Windows).
+- **Prefs are deep-merged, never replaced.** Filtering drops: `SKIP_PREFS` / `SKIP_LOCAL_STATE` subtrees, every path listed in `protection.macs` of Preferences / Secure Preferences / Local State (tamper-protected prefs), keys containing sensitive words, and string values that look like absolute file paths.
+- **Don't add MAC recomputation** or any other way around Brave's pref tamper protection. Protected settings (startup, homepage, search engine, extensions) are set by hand on each OS. Never sync `os_crypt`, `Login Data`, `Web Data`, `Cookies`, or Wallet/Rewards/VPN/SKU prefs.
+- Import backs up the current local items to `backup/` (rotating to `backup.old/`) first, and deletes stale SQLite `-journal/-wal/-shm` beside replaced files.
+- On Windows, import sets `background_mode.enabled=false` in Local State so Brave actually exits.
 
 ## Testing
 
-Tested end-to-end in headless Chromium via Playwright with two profiles standing in for the two OSes (login carried over; logout + changed cookie carried back). **Not yet tested** in real Brave, on Windows, or with a real NTFS share. Things worth checking there:
-
-- Windows PowerShell 5.1 `Set-Content -Encoding UTF8` writes a BOM. The host reads `config.json` with `utf-8-sig` to cope; confirm Brave accepts the BOM'd native-messaging manifest JSON (if not, write it without BOM).
-- Brave on Windows may only read the Chrome registry key, the Brave key, or both — installer writes both.
-- Whether `windows.onRemoved` save completes before Brave fully exits.
-
-Quick manual host test (Linux):
-
-```
-printf '%s' '{"cmd":"info"}' | python3 -c "import sys,struct;d=sys.stdin.buffer.read();sys.stdout.buffer.write(struct.pack('@I',len(d))+d)" | ~/.local/share/cookie-sync/cookie_sync_host.py | tail -c +5
-```
+- `python3 tests/test_profile_sync.py` runs export/import/launch and the native host against two fake profiles in a temp dir (Linux, stdlib only, no Brave needed). Run it after any change to `host/`.
+- The cookie part was tested earlier in headless Chromium with two profiles.
+- **Not yet tested with real Brave**, on Windows, or on a real NTFS share. Worth checking:
+  - That Brave restores copied `Sessions/` from the other OS, and accepts the copied History/Favicons.
+  - New-tab background file names (`*background*` glob is a guess at Brave's naming).
+  - Brave on Windows reads the Chrome registry key, the Brave key, or both (installer writes both).
+  - Whether `windows.onRemoved` cookie save finishes before Brave exits.
 
 ## Security
 
-The sync file is plaintext live session cookies. Never commit it, never put it in a cloud-synced folder. `.gitignore` excludes `cookies.json*` and `config.json`.
+The shared folder contains live cookies and browsing history in plaintext. Never commit it, and never put it in a cloud-synced folder. `.gitignore` excludes `cookies.json*` and `config.json`.

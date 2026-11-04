@@ -32,8 +32,18 @@ def send(obj):
 
 def sync_file():
     with open(CONFIG, encoding="utf-8-sig") as f:
-        path = json.load(f)["sync_file"]
-    return os.path.abspath(os.path.expanduser(path))
+        cfg = json.load(f)
+    if "sync_dir" in cfg:
+        return os.path.join(os.path.abspath(os.path.expanduser(cfg["sync_dir"])), "cookies.json")
+    return os.path.abspath(os.path.expanduser(cfg["sync_file"]))  # older installs
+
+
+def read_json(path, default=None):
+    try:
+        with open(path, encoding="utf-8-sig") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return default
 
 
 def handle(msg):
@@ -41,12 +51,20 @@ def handle(msg):
     cmd = msg.get("cmd")
 
     if cmd == "info":
+        # Result of the last profile sync (bookmarks, tabs, settings), if any.
+        profile = read_json(os.path.join(HERE, "state.json"), {})
         if not os.path.isfile(path):
-            return {"ok": True, "path": path, "exists": False, "savedAt": 0}
+            return {"ok": True, "path": path, "exists": False, "savedAt": 0, "profile": profile}
         with open(path, encoding="utf-8") as f:
             data = json.load(f)
-        return {"ok": True, "path": path, "exists": True,
+        return {"ok": True, "path": path, "exists": True, "profile": profile,
                 "savedAt": data.get("savedAt", 0), "size": os.path.getsize(path)}
+
+    if cmd == "extensions":
+        snap = os.path.join(os.path.dirname(path), "profile")
+        man = read_json(os.path.join(snap, "manifest.json"), {})
+        return {"ok": True, "machine": man.get("machine"),
+                "extensions": read_json(os.path.join(snap, "extensions.json"), [])}
 
     if cmd == "read":
         with open(path, encoding="utf-8") as f:

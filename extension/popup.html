@@ -7,7 +7,11 @@
   h1 { font-size: 15px; margin: 0 0 8px; }
   #status { background: #f3f3f3; padding: 8px; border-radius: 6px; margin-bottom: 4px; word-break: break-word; }
   #status.err { background: #fde8e8; color: #a00; }
-  #when { color: #777; font-size: 11px; margin-bottom: 10px; }
+  #when, .when { color: #777; font-size: 11px; margin-bottom: 10px; }
+  .box { background: #f3f3f3; padding: 8px; border-radius: 6px; margin-bottom: 4px; word-break: break-word; }
+  .box.err { background: #fde8e8; color: #a00; }
+  #missing ul { margin: 4px 0 0; padding-left: 18px; }
+  #missing a { color: #3b6ee8; cursor: pointer; }
   .row { display: flex; gap: 6px; }
   button { flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 6px; background: #fff; cursor: pointer; }
   button:hover { background: #f0f0f0; }
@@ -15,14 +19,16 @@
   @media (prefers-color-scheme: dark) {
     body { background: #1e1e1e; color: #eee; }
     #status { background: #2c2c2c; }
-    #status.err { background: #4a1f1f; color: #f99; }
+    #status.err, .box.err { background: #4a1f1f; color: #f99; }
+    .box { background: #2c2c2c; }
+    #missing a { color: #8ab4ff; }
     button { background: #2c2c2c; color: #eee; border-color: #555; }
     button:hover { background: #383838; }
   }
 </style>
 </head>
 <body>
-  <h1>Cookie Sync</h1>
+  <h1>Logins (live)</h1>
   <div id="status">…</div>
   <div id="when"></div>
   <div class="row">
@@ -30,6 +36,10 @@
     <button data-cmd="load">Load now</button>
     <button data-cmd="ping">Test</button>
   </div>
+  <h1 style="margin-top:14px">Bookmarks, tabs &amp; settings</h1>
+  <div id="pstatus" class="box">…</div>
+  <div id="pwhen" class="when"></div>
+  <div id="missing"></div>
   <script src="popup.js"></script>
 </body>
 </html>
